@@ -2,66 +2,13 @@ import type { Metadata } from "next";
 import HeroSection from "@/components/HeroSection";
 import PlanCard from "@/components/PlanCard";
 import CTASection from "@/components/CTASection";
-import type { Plan } from "@/types";
+import { getPlans } from "@/services/planService";
 
 export const metadata: Metadata = {
   title: "Membership Plans",
   description:
     "Choose your Astra Gym membership. Monthly, Quarterly, and Yearly plans with flexible pricing and premium benefits.",
 };
-
-const plans: Plan[] = [
-  {
-    id: "monthly",
-    name: "Monthly",
-    price: 999,
-    duration: "Monthly",
-    features: [
-      "Full gym access (all areas)",
-      "2 personal training sessions",
-      "Locker & shower access",
-      "Group classes included",
-      "Mobile app access",
-      "Guest pass (x1 per month)",
-    ],
-  },
-  {
-    id: "quarterly",
-    name: "Quarterly",
-    price: 2499,
-    duration: "3 Months",
-    popular: true,
-    features: [
-      "Full gym access (all areas)",
-      "6 personal training sessions",
-      "Locker & shower access",
-      "Group classes included",
-      "Mobile app access",
-      "Guest pass (x2 per month)",
-      "Diet & nutrition consult",
-      "Body composition analysis",
-    ],
-  },
-  {
-    id: "yearly",
-    name: "Yearly",
-    price: 7999,
-    duration: "Annual",
-    features: [
-      "Full gym access (all areas)",
-      "24 personal training sessions",
-      "Locker & shower access",
-      "Group classes included",
-      "Mobile app access",
-      "Guest pass (x4 per month)",
-      "Diet & nutrition consult",
-      "Body composition analysis",
-      "Priority class booking",
-      "Free fitness assessment",
-      "Freeze option (up to 1 month)",
-    ],
-  },
-];
 
 const addOns = [
   { name: "Extra PT Session", price: "₹350 / session" },
@@ -89,7 +36,14 @@ const faqs = [
   },
 ];
 
-export default function PlansPage() {
+export default async function PlansPage() {
+  let plans;
+  try {
+    plans = await getPlans();
+  } catch {
+    plans = null;
+  }
+
   return (
     <>
       {/* Hero */}
@@ -119,11 +73,30 @@ export default function PlansPage() {
               all taxes.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start mt-8">
-            {plans.map((plan, i) => (
-              <PlanCard key={plan.id} plan={plan} index={i} />
-            ))}
-          </div>
+
+          {plans && plans.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start mt-8">
+              {plans.map((plan, i) => (
+                <PlanCard key={plan.id} plan={plan} index={i} />
+              ))}
+            </div>
+          ) : plans === null ? (
+            <div className="text-center py-16">
+              <p className="text-[#555] text-sm uppercase tracking-widest">
+                Unable to load plans right now. Please try again later or{" "}
+                <a href="/contact" className="text-[#E50914] hover:underline">
+                  contact us
+                </a>
+                .
+              </p>
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <p className="text-[#555] text-sm uppercase tracking-widest">
+                No plans available at the moment.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

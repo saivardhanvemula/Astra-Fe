@@ -2,58 +2,13 @@ import type { Metadata } from "next";
 import HeroSection from "@/components/HeroSection";
 import TrainerCard from "@/components/TrainerCard";
 import CTASection from "@/components/CTASection";
-import type { Trainer } from "@/types";
+import { getTrainers } from "@/services/trainerService";
 
 export const metadata: Metadata = {
   title: "Our Trainers",
   description:
     "Meet the elite certified trainers at Astra Gym. Experts in strength, bodybuilding, yoga, CrossFit, and more.",
 };
-
-const trainers: Trainer[] = [
-  {
-    id: "1",
-    name: "Rajesh Kumar",
-    specialization: "Strength & Powerlifting",
-    experience: "8 Years",
-    bio: "National-level powerlifter and certified strength coach with a track record of 200+ athlete transformations. Rajesh specialises in progressive overload, competition prep, and corrective movement patterns.",
-  },
-  {
-    id: "2",
-    name: "Priya Sharma",
-    specialization: "Yoga & Wellness",
-    experience: "6 Years",
-    bio: "Certified yoga instructor and holistic wellness coach. Priya blends traditional yoga, modern mobility science, and mindfulness techniques to improve flexibility, posture, and mental resilience.",
-  },
-  {
-    id: "3",
-    name: "Vikram Singh",
-    specialization: "Bodybuilding & Physique",
-    experience: "10 Years",
-    bio: "IFBB-conditioned physique competitor and transformation specialist. Vikram's precision nutrition and periodised training plans consistently sculpt stage-ready and functional physiques.",
-  },
-  {
-    id: "4",
-    name: "Anjali Nair",
-    specialization: "CrossFit & Functional Fitness",
-    experience: "5 Years",
-    bio: "CrossFit Level 2 trainer and former national OCR champion. Anjali builds athletes who are strong, fast, and capable across every physical demand — from the gym floor to the race track.",
-  },
-  {
-    id: "5",
-    name: "Suresh Menon",
-    specialization: "Weight Loss & Cardio",
-    experience: "7 Years",
-    bio: "Certified personal trainer with a specialty in metabolic conditioning and fat loss. Suresh has guided over 300 members through structured weight-loss programmes with a 90%+ success rate.",
-  },
-  {
-    id: "6",
-    name: "Divya Iyer",
-    specialization: "Women's Fitness & Nutrition",
-    experience: "4 Years",
-    bio: "Registered dietitian and certified personal trainer with a focus on women's health, hormonal balance, and body recomposition. Divya's evidence-based approach empowers long-term sustainable results.",
-  },
-];
 
 const specializations = [
   "Strength & Powerlifting",
@@ -66,7 +21,29 @@ const specializations = [
   "Nutrition Coaching",
 ];
 
-export default function TrainersPage() {
+export default async function TrainersPage() {
+  let trainers;
+  try {
+    trainers = await getTrainers();
+  } catch {
+    trainers = null;
+  }
+
+  // Derive unique specialization tags from live data (fallback to static list)
+  const specializations =
+    trainers && trainers.length > 0
+      ? [...new Set(trainers.map((t) => t.specialization))]
+      : [
+          "Strength & Powerlifting",
+          "Bodybuilding & Physique",
+          "CrossFit & Functional",
+          "Yoga & Wellness",
+          "Weight Loss",
+          "Women's Fitness",
+          "Sports Performance",
+          "Nutrition Coaching",
+        ];
+
   return (
     <>
       {/* Hero */}
@@ -108,11 +85,21 @@ export default function TrainersPage() {
               Expert Trainers
             </h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {trainers.map((trainer, i) => (
-              <TrainerCard key={trainer.id} trainer={trainer} index={i} />
-            ))}
-          </div>
+          {trainers && trainers.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {trainers.map((trainer, i) => (
+                <TrainerCard key={trainer.id} trainer={trainer} index={i} />
+              ))}
+            </div>
+          ) : trainers === null ? (
+            <p className="text-center text-[#555] text-sm py-8">
+              Unable to load trainers. Please try again later.
+            </p>
+          ) : (
+            <p className="text-center text-[#555] text-sm py-8">
+              No trainers available at the moment.
+            </p>
+          )}
         </div>
       </section>
 

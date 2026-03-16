@@ -3,10 +3,9 @@ import Link from "next/link";
 import HeroSection from "@/components/HeroSection";
 import FeatureCard from "@/components/FeatureCard";
 import PlanCard from "@/components/PlanCard";
-import TrainerCard from "@/components/TrainerCard";
-import TransformationCard from "@/components/TransformationCard";
+// Trainer and transformations previews hidden for launch
 import CTASection from "@/components/CTASection";
-import type { Plan, Trainer, Transformation } from "@/types";
+import { getPlans } from "@/services/planService";
 
 export const metadata: Metadata = {
   title: "Astra – The Real Gym",
@@ -35,101 +34,6 @@ const features = [
   },
 ];
 
-const plans: Plan[] = [
-  {
-    id: "monthly",
-    name: "Monthly",
-    price: 999,
-    duration: "Monthly",
-    features: [
-      "Full gym access",
-      "2 personal training sessions",
-      "Locker & shower access",
-      "Group classes included",
-    ],
-  },
-  {
-    id: "quarterly",
-    name: "Quarterly",
-    price: 2499,
-    duration: "3 Months",
-    popular: true,
-    features: [
-      "Full gym access",
-      "6 personal training sessions",
-      "Locker & shower access",
-      "Group classes included",
-      "Diet & nutrition consult",
-      "Body composition analysis",
-    ],
-  },
-  {
-    id: "yearly",
-    name: "Yearly",
-    price: 7999,
-    duration: "Annual",
-    features: [
-      "Full gym access",
-      "24 personal training sessions",
-      "Locker & shower access",
-      "Group classes included",
-      "Diet & nutrition consult",
-      "Body composition analysis",
-      "Priority booking",
-      "Guest passes (x4)",
-    ],
-  },
-];
-
-const featuredTrainers: Trainer[] = [
-  {
-    id: "1",
-    name: "Rajesh Kumar",
-    specialization: "Strength & Powerlifting",
-    experience: "8 Years",
-    bio: "National-level powerlifter and certified strength coach. Rajesh has transformed over 200 athletes and everyday gym-goers with progressive overload programming.",
-  },
-  {
-    id: "2",
-    name: "Priya Sharma",
-    specialization: "Yoga & Wellness",
-    experience: "6 Years",
-    bio: "Certified yoga instructor and wellness coach. Priya blends mobility, mindfulness, and functional movement to help clients achieve holistic health.",
-  },
-  {
-    id: "3",
-    name: "Vikram Singh",
-    specialization: "Bodybuilding & Physique",
-    experience: "10 Years",
-    bio: "IFBB-conditioned physique competitor and transformation specialist. Vikram crafts precise nutrition and training plans to sculpt competition-ready bodies.",
-  },
-];
-
-const featuredTransformations: Transformation[] = [
-  {
-    id: "1",
-    memberName: "Amit Patel",
-    description:
-      "Shed 25 kg of fat while building lean muscle with a tailored strength + cardio programme.",
-    duration: "6 Months",
-    weightLost: "25 kg",
-  },
-  {
-    id: "2",
-    memberName: "Sunita Rao",
-    description:
-      "Went from sedentary to stage-ready physique competitor in just four months of dedicated training.",
-    duration: "4 Months",
-  },
-  {
-    id: "3",
-    memberName: "Karan Malhotra",
-    description:
-      "Dropped 15 kg and reversed pre-diabetic markers through consistent training and nutrition coaching.",
-    duration: "3 Months",
-    weightLost: "15 kg",
-  },
-];
 
 const stats = [
   { value: "500+", label: "Active Members" },
@@ -138,7 +42,10 @@ const stats = [
   { value: "5 ★", label: "Average Rating" },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const plansResult = await Promise.allSettled([getPlans()]);
+  const plans = plansResult[0].status === "fulfilled" ? plansResult[0].value : null;
+
   return (
     <>
       {/* Hero */}
@@ -200,11 +107,20 @@ export default function HomePage() {
               Flexible plans designed to fit every lifestyle and fitness level.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-            {plans.map((plan, i) => (
-              <PlanCard key={plan.id} plan={plan} index={i} />
-            ))}
-          </div>
+          {plans && plans.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+              {plans.map((plan, i) => (
+                <PlanCard key={plan.id} plan={plan} index={i} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-[#555] text-sm py-8">
+              Unable to load plans.{" "}
+              <a href="/plans" className="text-[#E50914] hover:underline">
+                View all plans →
+              </a>
+            </p>
+          )}
           <div className="text-center mt-12">
             <Link
               href="/plans"
@@ -216,66 +132,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Trainers Preview */}
-      <section className="py-24 bg-[#0B0B0B]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
-            <p className="text-[#E50914] text-[11px] font-black tracking-[0.3em] uppercase mb-4">
-              Meet The Team
-            </p>
-            <h2 className="text-4xl sm:text-5xl font-black uppercase tracking-tight text-white mb-4">
-              Expert Trainers
-            </h2>
-            <p className="text-[#666] text-lg max-w-xl mx-auto">
-              Our certified coaches are dedicated to helping you reach your
-              peak.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredTrainers.map((trainer, i) => (
-              <TrainerCard key={trainer.id} trainer={trainer} index={i} />
-            ))}
-          </div>
-          <div className="text-center mt-12">
-            <Link
-              href="/trainers"
-              className="inline-block border border-[#E50914] text-[#E50914] hover:bg-[#E50914] hover:text-white px-10 py-3 font-black tracking-widest uppercase text-sm transition-all duration-200"
-            >
-              Meet All Trainers
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Trainers temporarily hidden */}
 
-      {/* Transformations Preview */}
-      <section className="py-24 bg-[#111111]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
-            <p className="text-[#E50914] text-[11px] font-black tracking-[0.3em] uppercase mb-4">
-              Real Results
-            </p>
-            <h2 className="text-4xl sm:text-5xl font-black uppercase tracking-tight text-white mb-4">
-              Transformations
-            </h2>
-            <p className="text-[#666] text-lg max-w-xl mx-auto">
-              Real people. Real dedication. Real results.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredTransformations.map((t, i) => (
-              <TransformationCard key={t.id} transformation={t} index={i} />
-            ))}
-          </div>
-          <div className="text-center mt-12">
-            <Link
-              href="/transformations"
-              className="inline-block border border-[#E50914] text-[#E50914] hover:bg-[#E50914] hover:text-white px-10 py-3 font-black tracking-widest uppercase text-sm transition-all duration-200"
-            >
-              View All Transformations
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Transformations temporarily hidden */}
 
       {/* CTA */}
       <CTASection

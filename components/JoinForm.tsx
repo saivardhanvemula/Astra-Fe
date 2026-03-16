@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { submitMemberForm } from "@/lib/api";
+import { submitMemberForm } from "@/services/memberService";
 import type { MemberFormData } from "@/types";
 
 const fitnessGoals = [

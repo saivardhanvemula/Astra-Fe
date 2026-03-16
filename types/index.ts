@@ -11,7 +11,8 @@ export interface Trainer {
   id: string;
   name: string;
   specialization: string;
-  experience: string;
+  /** Number of years of experience (as returned by the API) */
+  experience: number;
   bio: string;
   image?: string;
 }

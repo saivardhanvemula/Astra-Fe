@@ -4,8 +4,6 @@ const quickLinks = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About Us" },
   { href: "/plans", label: "Membership Plans" },
-  { href: "/trainers", label: "Our Trainers" },
-  { href: "/transformations", label: "Transformations" },
   { href: "/contact", label: "Contact" },
 ];
 

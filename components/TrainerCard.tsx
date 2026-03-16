@@ -70,7 +70,7 @@ export default function TrainerCard({ trainer, index = 0 }: TrainerCardProps) {
           {trainer.name}
         </h3>
         <p className="text-[#555] text-[11px] tracking-[0.15em] uppercase mb-4">
-          {trainer.experience} Experience
+          {trainer.experience} Yrs Experience
         </p>
         <p className="text-[#777] text-sm leading-relaxed line-clamp-3">
           {trainer.bio}

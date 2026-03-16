@@ -66,11 +66,26 @@ export async function serverFetch<T>(
       ? { cache: "no-store" }
       : { next: { revalidate, ...(tags?.length ? { tags } : {}) } };
 
-  const res = await fetch(`${BASE_URL}${path}`, options);
+  // Add an AbortController-based timeout so builds don't hang when the
+  // upstream API is unreachable (e.g. localhost during Vercel builds).
+  const timeoutMs = Number(process.env.SERVER_FETCH_TIMEOUT_MS) || 10000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!res.ok) {
-    throw new Error(`API error ${res.status} — ${path}`);
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, { ...options, signal: controller.signal });
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      throw new Error(`API error ${res.status} — ${path}`);
+    }
+
+    return res.json() as Promise<T>;
+  } catch (err: any) {
+    clearTimeout(timer);
+    if (err?.name === "AbortError") {
+      throw new Error(`Request timed out after ${timeoutMs}ms — ${path}`);
+    }
+    throw err;
   }
-
-  return res.json() as Promise<T>;
 }

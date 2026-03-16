@@ -19,9 +19,16 @@ interface ApiTrainersResponse {
  * Cached by Next.js ISR — revalidates once per hour.
  */
 export async function getTrainers(): Promise<Trainer[]> {
-  const json = await serverFetch<ApiTrainersResponse>("/api/trainers", {
-    revalidate: 3600,
-    tags: ["trainers"],
-  });
-  return json.data;
+  try {
+    const json = await serverFetch<ApiTrainersResponse>("/api/trainers", {
+      revalidate: 3600,
+      tags: ["trainers"],
+    });
+    return json.data;
+  } catch (err) {
+    // Fail safe for build-time: log and return empty array when API is unreachable
+    // eslint-disable-next-line no-console
+    console.error("getTrainers failed:", err);
+    return [];
+  }
 }

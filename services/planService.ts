@@ -34,13 +34,21 @@ const POPULAR_PLAN_NAME = "Quarterly";
  * Cached by Next.js ISR — revalidates once per hour.
  */
 export async function getPlans(): Promise<Plan[]> {
-  const json = await serverFetch<ApiPlansResponse>("/api/plans", {
-    revalidate: 3600,
-    tags: ["plans"],
-  });
+  try {
+    const json = await serverFetch<ApiPlansResponse>("/api/plans", {
+      revalidate: 3600,
+      tags: ["plans"],
+    });
 
-  return json.data.map((plan) => ({
-    ...plan,
-    popular: plan.name === POPULAR_PLAN_NAME,
-  }));
+    return json.data.map((plan) => ({
+      ...plan,
+      popular: plan.name === POPULAR_PLAN_NAME,
+    }));
+  } catch (err) {
+    // Fail safe: log and return empty array so page generation doesn't fail
+    // during builds when the API is unreachable.
+    // eslint-disable-next-line no-console
+    console.error("getPlans failed:", err);
+    return [];
+  }
 }

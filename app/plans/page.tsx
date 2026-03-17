@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import HeroSection from "@/components/HeroSection";
-import PlanCard from "@/components/PlanCard";
+import PlansSection from "@/components/PlansSection";
 import CTASection from "@/components/CTASection";
-import { getPlans } from "@/services/planService";
 
 export const metadata: Metadata = {
   title: "Membership Plans",
@@ -36,14 +35,7 @@ const faqs = [
   },
 ];
 
-export default async function PlansPage() {
-  let plans;
-  try {
-    plans = await getPlans();
-  } catch {
-    plans = null;
-  }
-
+export default function PlansPage() {
   return (
     <>
       {/* Hero */}
@@ -74,29 +66,7 @@ export default async function PlansPage() {
             </p>
           </div>
 
-          {plans && plans.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start mt-8">
-              {plans.map((plan, i) => (
-                <PlanCard key={plan.id} plan={plan} index={i} />
-              ))}
-            </div>
-          ) : plans === null ? (
-            <div className="text-center py-16">
-              <p className="text-[#555] text-sm uppercase tracking-widest">
-                Unable to load plans right now. Please try again later or{" "}
-                <a href="/contact" className="text-[#E50914] hover:underline">
-                  contact us
-                </a>
-                .
-              </p>
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <p className="text-[#555] text-sm uppercase tracking-widest">
-                No plans available at the moment.
-              </p>
-            </div>
-          )}
+          <PlansSection />
         </div>
       </section>
 

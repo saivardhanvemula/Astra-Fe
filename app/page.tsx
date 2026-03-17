@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import HeroSection from "@/components/HeroSection";
 import FeatureCard from "@/components/FeatureCard";
-import PlanCard from "@/components/PlanCard";
-// Trainer and transformations previews hidden for launch
+import PlansSection from "@/components/PlansSection";
 import CTASection from "@/components/CTASection";
-import { getPlans } from "@/services/planService";
 
 export const metadata: Metadata = {
   title: "Astra – The Real Gym",
@@ -42,10 +40,7 @@ const stats = [
   { value: "5 ★", label: "Average Rating" },
 ];
 
-export default async function HomePage() {
-  const plansResult = await Promise.allSettled([getPlans()]);
-  const plans = plansResult[0].status === "fulfilled" ? plansResult[0].value : null;
-
+export default function HomePage() {
   return (
     <>
       {/* Hero */}
@@ -107,20 +102,7 @@ export default async function HomePage() {
               Flexible plans designed to fit every lifestyle and fitness level.
             </p>
           </div>
-          {plans && plans.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-              {plans.map((plan, i) => (
-                <PlanCard key={plan.id} plan={plan} index={i} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-[#555] text-sm py-8">
-              Unable to load plans.{" "}
-              <a href="/plans" className="text-[#E50914] hover:underline">
-                View all plans →
-              </a>
-            </p>
-          )}
+          <PlansSection />
           <div className="text-center mt-12">
             <Link
               href="/plans"

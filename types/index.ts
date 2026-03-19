@@ -42,3 +42,58 @@ export interface MemberFormData {
   fitness_goal: string;
   selected_plan: string;
 }
+
+// ── Admin: Membership Plans ────────────────────────────────────────────────────
+
+export interface AdminPlan {
+  id: string;
+  name: string;
+  price: number;
+  duration_days: number;
+}
+
+// ── Admin: Members ─────────────────────────────────────────────────────────────
+
+export type MemberStatus = "active" | "expired" | "expiring_soon";
+
+export interface Member {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  plan_id: string;
+  plan_name: string;
+  start_date: string;
+  expiry_date: string;
+  status: MemberStatus;
+}
+
+export interface MemberDashboardInfo {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  gender: string | null;
+  join_date: string;
+  plan_name: string;
+  start_date: string;
+  end_date: string;
+  days_remaining: number;
+  status: MemberStatus;
+}
+
+// ── User Profile ───────────────────────────────────────────────────────────────
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email?: string;
+  role?: string;
+  age: number | null;
+  gender: string;
+  height: number | null;
+  weight: number | null;
+  fitness_goal: string;
+  profile_picture: string | null;
+  created_at?: string;
+}

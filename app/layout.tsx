@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import StoreProvider from "@/components/StoreProvider";
 
 export const metadata: Metadata = {
   title: {
@@ -41,7 +42,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-[#0B0B0B] text-white antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <StoreProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </StoreProvider>
       </body>
     </html>
   );

@@ -10,10 +10,11 @@ interface Props {
 }
 
 export default function ProtectedRoute({ children, allowedRole }: Props) {
-  const { token, user } = useAuth();
+  const { token, user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
+    if (isLoading) return; // wait until localStorage has been checked
     if (!token) {
       router.replace("/login");
       return;
@@ -23,8 +24,10 @@ export default function ProtectedRoute({ children, allowedRole }: Props) {
         user?.role === "admin" ? "/admin/dashboard" : "/member/dashboard"
       );
     }
-  }, [token, user, allowedRole, router]);
+  }, [isLoading, token, user, allowedRole, router]);
 
+  // Still reading localStorage — render nothing, don't redirect yet
+  if (isLoading) return null;
   if (!token) return null;
   if (allowedRole && user?.role !== allowedRole) return null;
 

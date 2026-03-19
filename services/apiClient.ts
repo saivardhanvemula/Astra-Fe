@@ -32,6 +32,13 @@ export const apiClient = axios.create({
 apiClient.interceptors.response.use(
   (res) => res,
   (err) => {
+    // 401 Unauthorized → token expired or invalid; clear session and redirect to login
+    if (err.response?.status === 401) {
+      localStorage.removeItem("astra_token");
+      localStorage.removeItem("astra_user");
+      window.location.replace("/login");
+      return Promise.reject(new Error("Session expired. Please log in again."));
+    }
     const message: string =
       err.response?.data?.message || "Something went wrong. Please try again.";
     return Promise.reject(new Error(message));

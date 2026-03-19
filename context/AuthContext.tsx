@@ -8,6 +8,8 @@ import {
   ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
+import { clearMembership } from "@/store/membershipSlice";
 
 export interface AuthUser {
   id: string;
@@ -19,6 +21,7 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
+  isLoading: boolean;
   login: (token: string, user: AuthUser) => void;
   logout: () => void;
 }
@@ -28,7 +31,9 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const dispatch = useDispatch();
 
   // Rehydrate from localStorage on mount
   useEffect(() => {
@@ -43,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("astra_user");
       }
     }
+    setIsLoading(false);
   }, []);
 
   function login(token: string, user: AuthUser) {
@@ -58,11 +64,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("astra_user");
     setToken(null);
     setUser(null);
+    dispatch(clearMembership());
     router.push("/login");
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

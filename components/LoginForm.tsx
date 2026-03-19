@@ -6,8 +6,8 @@ import { loginRequest } from "@/utils/api";
 
 export default function LoginForm() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("member@astragym.com");
+  const [password, setPassword] = useState("member@123");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

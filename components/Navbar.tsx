@@ -73,6 +73,12 @@ export default function Navbar() {
             >
               Join Now
             </Link>
+            <Link
+              href="/login"
+              className="hidden lg:block border border-[#2A2A2A] hover:border-[#E50914] text-[#888] hover:text-[#E50914] px-6 py-2.5 text-[11px] font-black tracking-widest uppercase transition-all duration-200"
+            >
+              Login
+            </Link>
 
             {/* Hamburger */}
             <button
@@ -136,6 +142,12 @@ export default function Navbar() {
                 className="block bg-[#E50914] text-white px-4 py-3 text-sm font-black tracking-widest uppercase text-center mt-2"
               >
                 Join Now
+              </Link>
+              <Link
+                href="/login"
+                className="block border border-[#2A2A2A] text-[#888] px-4 py-3 text-sm font-black tracking-widest uppercase text-center"
+              >
+                Login
               </Link>
             </div>
           </motion.div>

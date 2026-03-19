@@ -82,6 +82,31 @@ export interface MemberDashboardInfo {
   status: MemberStatus;
 }
 
+// ── Attendance / Sessions ──────────────────────────────────────────────────────
+
+export interface QRTokenResponse {
+  /** The signed token embedded in the QR code */
+  token: string;
+  /** Seconds until this token expires (used for countdown timer) */
+  expires_in: number;
+}
+
+export interface AttendanceSession {
+  id: string;
+  member_id: string;
+  member_name?: string;
+  checkin_time: string;
+  checkout_time?: string | null;
+  /** Duration in minutes; null while session is still open */
+  duration_minutes?: number | null;
+}
+
+export interface TodaySession {
+  checkin_time: string | null;
+  checkout_time: string | null;
+  duration_minutes: number | null;
+}
+
 // ── User Profile ───────────────────────────────────────────────────────────────
 
 export interface UserProfile {

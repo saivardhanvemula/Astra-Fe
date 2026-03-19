@@ -1,18 +1,40 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMembership } from "@/store/membershipSlice";
-import type { MemberStatus } from "@/types";
+import { getTodaySession } from "@/services/attendanceService";
+import type { MemberStatus, TodaySession } from "@/types";
 
 const STATUS_STYLE: Record<MemberStatus, { text: string; label: string }> = {
   active: { text: "text-[#22c55e]", label: "Active" },
   expired: { text: "text-[#E50914]", label: "Expired" },
   expiring_soon: { text: "text-[#f59e0b]", label: "Expiring Soon" },
 };
+
+function fmtTime(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function fmtDuration(mins: number | null | undefined): string {
+  if (mins == null) return "Active";
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
 
 function fmt(dateStr: string | undefined | null): string {
   if (!dateStr) return "—";
@@ -31,6 +53,8 @@ export default function MemberDashboard() {
   const { user, logout } = useAuth();
   const dispatch = useAppDispatch();
   const { data: info, loading } = useAppSelector((s) => s.membership);
+  const [todaySession, setTodaySession] = useState<TodaySession | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
 
   useEffect(() => {
     // Only fetch if we don't already have the data in the store
@@ -38,6 +62,13 @@ export default function MemberDashboard() {
       dispatch(fetchMembership());
     }
   }, [dispatch, info]);
+
+  useEffect(() => {
+    getTodaySession()
+      .then(setTodaySession)
+      .catch(() => setTodaySession(null))
+      .finally(() => setSessionLoading(false));
+  }, []);
 
   const statusCfg = info ? STATUS_STYLE[info.status] : null;
 
@@ -56,6 +87,12 @@ export default function MemberDashboard() {
             </span>
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              href="/member/scan"
+              className="bg-[#E50914] hover:bg-[#C20812] text-white text-[10px] font-black tracking-[0.2em] uppercase px-4 py-2 transition-colors duration-200"
+            >
+              Check In
+            </Link>
             <Link
               href="/member/profile"
               className="border border-[#2A2A2A] hover:border-[#E50914] text-[#888] hover:text-[#E50914] text-[10px] font-black tracking-[0.2em] uppercase px-4 py-2 transition-colors duration-200"
@@ -144,6 +181,56 @@ export default function MemberDashboard() {
               ) : (
                 <p className="text-[#555] font-black">—</p>
               )}
+            </div>
+          </div>
+
+          {/* Today's Session */}
+          <div className="bg-[#111111] border border-[#2A2A2A] p-6 mb-4">
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-[#555] text-[10px] font-black tracking-[0.2em] uppercase">
+                Today&apos;s Session
+              </p>
+              {!todaySession?.checkin_time && !sessionLoading && (
+                <Link
+                  href="/member/scan"
+                  className="bg-[#E50914] hover:bg-[#C20812] text-white text-[9px] font-black tracking-[0.2em] uppercase px-3 py-1.5 transition-colors duration-200"
+                >
+                  Scan QR
+                </Link>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              {["Check-In", "Check-Out", "Duration"].map((label, i) => {
+                const values = sessionLoading
+                  ? ["—", "—", "—"]
+                  : [
+                      fmtTime(todaySession?.checkin_time),
+                      fmtTime(todaySession?.checkout_time),
+                      todaySession?.checkin_time
+                        ? fmtDuration(todaySession.duration_minutes)
+                        : "—",
+                    ];
+                return (
+                  <div key={label}>
+                    <p className="text-[#555] text-[9px] font-black tracking-[0.2em] uppercase mb-2">
+                      {label}
+                    </p>
+                    <p
+                      className={`font-black text-sm ${
+                        sessionLoading
+                          ? "text-[#333] animate-pulse"
+                          : i === 0 && todaySession?.checkin_time
+                          ? "text-[#22c55e]"
+                          : i === 2 && !todaySession?.checkout_time && todaySession?.checkin_time
+                          ? "text-[#f59e0b]"
+                          : "text-white"
+                      }`}
+                    >
+                      {values[i]}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

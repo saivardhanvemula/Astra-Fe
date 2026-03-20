@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import StoreProvider from "@/components/StoreProvider";
+import InstallPrompt from "@/components/InstallPrompt";
 
 export const metadata: Metadata = {
   title: {
@@ -20,6 +21,12 @@ export const metadata: Metadata = {
     "weight loss",
     "muscle building",
   ],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Astra",
+  },
   openGraph: {
     title: "Astra – The Real Gym",
     description:
@@ -34,6 +41,13 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#111111",
+  width: "device-width",
+  initialScale: 1,
+  minimumScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -45,6 +59,7 @@ export default function RootLayout({
         <StoreProvider>
           <AuthProvider>{children}</AuthProvider>
         </StoreProvider>
+        <InstallPrompt />
       </body>
     </html>
   );

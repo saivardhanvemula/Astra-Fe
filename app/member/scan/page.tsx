@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { checkin, checkout } from "@/services/attendanceService";
+import { checkin, checkout, getTodaySession } from "@/services/attendanceService";
 import type { AttendanceSession } from "@/types";
 
 // Scanner uses the camera API — must be client-only, no SSR
@@ -31,6 +31,26 @@ export default function MemberScanPage() {
   const [session, setSession] = useState<AttendanceSession | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(true);
+
+  // On mount: if the member already has an active session, surface it immediately
+  useEffect(() => {
+    getTodaySession()
+      .then((s) => {
+        if (s.check_in_time && !s.check_out_time) {
+          setSession({
+            id: "",
+            member_id: "",
+            check_in_time: s.check_in_time,
+            check_out_time: s.check_out_time,
+            duration_minutes: s.duration_minutes,
+          });
+          setScanState("success");
+        }
+      })
+      .catch(() => {/* no session or network error — show scanner */})
+      .finally(() => setSessionLoading(false));
+  }, []);
 
   const handleScan = useCallback(
     async (rawToken: string) => {
@@ -99,14 +119,24 @@ export default function MemberScanPage() {
             Member
           </p>
           <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-white mb-2 text-center">
-            Scan to Check In
+            {scanState === "success" ? "Session Active" : "Scan to Check In"}
           </h1>
           <p className="text-[#555] text-sm tracking-wide mb-12 text-center">
-            Point your camera at the QR code displayed on the gym screen.
+            {scanState === "success"
+              ? "Your session is in progress. End it when you leave."
+              : "Point your camera at the QR code displayed on the gym screen."}
           </p>
 
+          {/* Loading skeleton while checking for an existing session */}
+          {sessionLoading && (
+            <div className="w-full space-y-3">
+              <div className="h-32 bg-[#111111] border border-[#2A2A2A] animate-pulse" />
+              <div className="h-16 bg-[#111111] border border-[#2A2A2A] animate-pulse" />
+            </div>
+          )}
+
           {/* ── Success state ── */}
-          {scanState === "success" && session && (
+          {!sessionLoading && scanState === "success" && session && (
             <div className="w-full flex flex-col items-center gap-6">
               {/* Success banner */}
               <div className="w-full bg-[#0D1F12] border border-[#22c55e]/40 p-6 text-center">
@@ -130,7 +160,7 @@ export default function MemberScanPage() {
                   Checked In
                 </p>
                 <p className="text-white text-2xl font-black">
-                  {fmtTime(session.checkin_time)}
+                  {fmtTime(session.check_in_time)}
                 </p>
               </div>
 
@@ -141,7 +171,7 @@ export default function MemberScanPage() {
                     Check-In
                   </p>
                   <p className="text-white font-black">
-                    {fmtTime(session.checkin_time)}
+                    {fmtTime(session.check_in_time)}
                   </p>
                 </div>
                 <div className="bg-[#111111] border border-[#2A2A2A] p-4">
@@ -149,7 +179,7 @@ export default function MemberScanPage() {
                     Check-Out
                   </p>
                   <p className="text-white font-black">
-                    {fmtTime(session.checkout_time) ?? "—"}
+                    {fmtTime(session.check_out_time) ?? "—"}
                   </p>
                 </div>
               </div>
@@ -163,7 +193,7 @@ export default function MemberScanPage() {
               )}
 
               {/* Checkout / End Session button — shown only when no checkout yet */}
-              {!session.checkout_time && (
+              {!session.check_out_time && (
                 <button
                   onClick={handleCheckout}
                   disabled={checkoutLoading}
@@ -191,7 +221,7 @@ export default function MemberScanPage() {
           )}
 
           {/* ── Error state ── */}
-          {scanState === "error" && (
+          {!sessionLoading && scanState === "error" && (
             <div className="w-full flex flex-col items-center gap-6">
               <div className="w-full bg-[#1F0D0D] border border-[#E50914]/40 p-6 text-center">
                 <div className="flex justify-center mb-4">
@@ -224,7 +254,7 @@ export default function MemberScanPage() {
           )}
 
           {/* ── Scanner (idle / processing) ── */}
-          {(scanState === "idle" || scanState === "processing" || scanState === "scanning") && (
+          {!sessionLoading && (scanState === "idle" || scanState === "processing" || scanState === "scanning") && (
             <div className="w-full">
               <Scanner
                 onScan={handleScan}

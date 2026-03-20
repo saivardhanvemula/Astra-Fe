@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import AdminShell from "@/components/AdminShell";
 import QRDisplay from "@/components/QRDisplay";
-import { getAttendanceLogs } from "@/services/attendanceService";
+import { getAttendanceLogs, adminCheckout } from "@/services/attendanceService";
 import type { AttendanceSession } from "@/types";
 
 function fmtTime(iso: string | null | undefined): string {
@@ -44,6 +44,21 @@ export default function AdminAttendancePage() {
   const [logs, setLogs] = useState<AttendanceSession[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
   const [logsError, setLogsError] = useState<string | null>(null);
+  const [checkingOut, setCheckingOut] = useState<string | null>(null);
+
+  async function handleAdminCheckout(sessionId: string) {
+    setCheckingOut(sessionId);
+    try {
+      const updated = await adminCheckout(sessionId);
+      setLogs((prev) =>
+        prev.map((row) => (row.id === sessionId ? updated : row))
+      );
+    } catch {
+      // silently ignore — user can refresh
+    } finally {
+      setCheckingOut(null);
+    }
+  }
 
   useEffect(() => {
     getAttendanceLogs()
@@ -133,7 +148,7 @@ export default function AdminAttendancePage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[#2A2A2A] bg-[#111111]">
-                    {["Member", "Date", "Check-In", "Check-Out", "Duration"].map(
+                    {["Member", "Date", "Check-In", "Check-Out", "Duration", ""].map(
                       (h) => (
                         <th
                           key={h}
@@ -157,16 +172,16 @@ export default function AdminAttendancePage() {
                         {row.member_name ?? row.member_id}
                       </td>
                       <td className="px-4 py-3 text-[#888] whitespace-nowrap">
-                        {fmtDate(row.checkin_time)}
+                        {fmtDate(row.check_in_time)}
                       </td>
                       <td className="px-4 py-3 text-[#888] whitespace-nowrap">
-                        {fmtTime(row.checkin_time)}
+                        {fmtTime(row.check_in_time)}
                       </td>
                       <td className="px-4 py-3 text-[#888] whitespace-nowrap">
-                        {fmtTime(row.checkout_time)}
+                        {fmtTime(row.check_out_time)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        {row.checkout_time ? (
+                        {row.check_out_time ? (
                           <span className="text-[#888]">
                             {fmtDuration(row.duration_minutes)}
                           </span>
@@ -174,6 +189,24 @@ export default function AdminAttendancePage() {
                           <span className="text-[#22c55e] text-[9px] font-black tracking-[0.15em] uppercase">
                             Active
                           </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {!row.check_out_time && (
+                          <button
+                            onClick={() => handleAdminCheckout(row.id)}
+                            disabled={checkingOut === row.id}
+                            className="border border-[#2A2A2A] hover:border-[#E50914] text-[#555] hover:text-[#E50914] text-[9px] font-black tracking-[0.15em] uppercase px-3 py-1.5 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {checkingOut === row.id ? (
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                Wait…
+                              </span>
+                            ) : (
+                              "Check-Out"
+                            )}
+                          </button>
                         )}
                       </td>
                     </tr>

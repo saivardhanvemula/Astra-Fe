@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import QRCode from "react-qr-code";
 import { getCheckinQR } from "@/services/attendanceService";
 
-const REFRESH_INTERVAL = 30; // seconds
+const REFRESH_INTERVAL = 60; // seconds
 
 export default function QRDisplay() {
   const [token, setToken] = useState<string | null>(null);

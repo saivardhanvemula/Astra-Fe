@@ -61,10 +61,8 @@ export interface ExpiringMember {
 }
 
 export interface RecentMember {
-  id: string;
   name: string;
-  joined_date: string;
-  plan_name: string;
+  created_at: string;
 }
 
 export interface WeeklyCheckin {
@@ -124,15 +122,15 @@ export interface AttendanceSession {
   id: string;
   member_id: string;
   member_name?: string;
-  checkin_time: string;
-  checkout_time?: string | null;
+  check_in_time: string;
+  check_out_time?: string | null;
   /** Duration in minutes; null while session is still open */
   duration_minutes?: number | null;
 }
 
 export interface TodaySession {
-  checkin_time: string | null;
-  checkout_time: string | null;
+  check_in_time: string | null;
+  check_out_time: string | null;
   duration_minutes: number | null;
 }
 

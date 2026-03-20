@@ -57,9 +57,9 @@ export default function RecentMembers({ data, loading, error }: Props) {
         </p>
       ) : (
         <ul>
-          {data.map((m) => (
+          {data.map((m, idx) => (
             <li
-              key={m.id}
+              key={`${m.name}-${idx}`}
               className="flex items-center gap-3 py-3 border-b border-[#1A1A1A] last:border-0 group"
             >
               {/* Avatar */}
@@ -69,17 +69,14 @@ export default function RecentMembers({ data, loading, error }: Props) {
                 </span>
               </div>
 
-              {/* Name + plan */}
+              {/* Name */}
               <div className="flex-1 min-w-0">
                 <p className="text-white text-sm font-black truncate">{m.name}</p>
-                <p className="text-[#555] text-[9px] font-black tracking-[0.1em] uppercase truncate">
-                  {m.plan_name}
-                </p>
               </div>
 
               {/* Date */}
               <span className="text-[#555] text-[10px] font-black shrink-0">
-                {fmtDate(m.joined_date)}
+                {fmtDate(m.created_at)}
               </span>
             </li>
           ))}

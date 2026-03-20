@@ -37,6 +37,15 @@ export async function getAttendanceLogs(): Promise<AttendanceSession[]> {
   return res.data.data;
 }
 
+/** Manually check out a specific session (admin action). */
+export async function adminCheckout(sessionId: string): Promise<AttendanceSession> {
+  const res = await apiClient.post<{
+    success: boolean;
+    data: AttendanceSession;
+  }>(`/api/sessions/${sessionId}/checkout`, {}, { headers: authHeaders() });
+  return res.data.data;
+}
+
 // ── Member ─────────────────────────────────────────────────────────────────────
 
 /** Submit a scanned QR token to record a check-in. */

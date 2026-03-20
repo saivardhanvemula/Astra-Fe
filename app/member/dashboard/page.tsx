@@ -6,7 +6,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMembership } from "@/store/membershipSlice";
-import { getTodaySession } from "@/services/attendanceService";
+import { getTodaySession, checkout } from "@/services/attendanceService";
 import type { MemberStatus, TodaySession } from "@/types";
 
 const STATUS_STYLE: Record<MemberStatus, { text: string; label: string }> = {
@@ -55,6 +55,31 @@ export default function MemberDashboard() {
   const { data: info, loading } = useAppSelector((s) => s.membership);
   const [todaySession, setTodaySession] = useState<TodaySession | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  async function handleCheckout() {
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    try {
+      const result = await checkout();
+      setTodaySession((prev) =>
+        prev
+          ? {
+              ...prev,
+              check_out_time: result.check_out_time ?? null,
+              duration_minutes: result.duration_minutes ?? null,
+            }
+          : prev
+      );
+    } catch (err) {
+      setCheckoutError(
+        err instanceof Error ? err.message : "Checkout failed. Try again."
+      );
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }
 
   useEffect(() => {
     // Only fetch if we don't already have the data in the store
@@ -190,23 +215,45 @@ export default function MemberDashboard() {
               <p className="text-[#555] text-[10px] font-black tracking-[0.2em] uppercase">
                 Today&apos;s Session
               </p>
-              {!todaySession?.checkin_time && !sessionLoading && (
-                <Link
-                  href="/member/scan"
-                  className="bg-[#E50914] hover:bg-[#C20812] text-white text-[9px] font-black tracking-[0.2em] uppercase px-3 py-1.5 transition-colors duration-200"
-                >
-                  Scan QR
-                </Link>
+              {!sessionLoading && (
+                todaySession?.check_in_time && !todaySession?.check_out_time ? (
+                  <button
+                    onClick={handleCheckout}
+                    disabled={checkoutLoading}
+                    className="bg-[#E50914] hover:bg-[#C20812] text-white text-[9px] font-black tracking-[0.2em] uppercase px-3 py-1.5 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {checkoutLoading ? (
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        Ending…
+                      </span>
+                    ) : (
+                      "End Session"
+                    )}
+                  </button>
+                ) : !todaySession?.check_in_time ? (
+                  <Link
+                    href="/member/scan"
+                    className="bg-[#E50914] hover:bg-[#C20812] text-white text-[9px] font-black tracking-[0.2em] uppercase px-3 py-1.5 transition-colors duration-200"
+                  >
+                    Scan QR
+                  </Link>
+                ) : null
               )}
             </div>
+            {checkoutError && (
+              <p className="text-[#E50914] text-[9px] font-black tracking-[0.15em] uppercase mb-4">
+                {checkoutError}
+              </p>
+            )}
             <div className="grid grid-cols-3 gap-4">
               {["Check-In", "Check-Out", "Duration"].map((label, i) => {
                 const values = sessionLoading
                   ? ["—", "—", "—"]
                   : [
-                      fmtTime(todaySession?.checkin_time),
-                      fmtTime(todaySession?.checkout_time),
-                      todaySession?.checkin_time
+                      fmtTime(todaySession?.check_in_time),
+                      fmtTime(todaySession?.check_out_time),
+                      todaySession?.check_in_time
                         ? fmtDuration(todaySession.duration_minutes)
                         : "—",
                     ];
@@ -219,9 +266,9 @@ export default function MemberDashboard() {
                       className={`font-black text-sm ${
                         sessionLoading
                           ? "text-[#333] animate-pulse"
-                          : i === 0 && todaySession?.checkin_time
+                          : i === 0 && todaySession?.check_in_time
                           ? "text-[#22c55e]"
-                          : i === 2 && !todaySession?.checkout_time && todaySession?.checkin_time
+                          : i === 2 && !todaySession?.check_out_time && todaySession?.check_in_time
                           ? "text-[#f59e0b]"
                           : "text-white"
                       }`}

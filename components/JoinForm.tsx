@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { submitMemberForm } from "@/services/memberService";
+import { apiClient } from "@/services/apiClient";
 import type { MemberFormData } from "@/types";
 
 const fitnessGoals = [
@@ -17,11 +18,10 @@ const fitnessGoals = [
   "Post-Injury Rehab",
 ];
 
-const plans = [
-  { id: "monthly", label: "Monthly – ₹999" },
-  { id: "quarterly", label: "Quarterly – ₹2,499" },
-  { id: "yearly", label: "Yearly – ₹7,999" },
-];
+interface PlanOption {
+  id: string;
+  label: string;
+}
 
 const initialForm: MemberFormData = {
   name: "",
@@ -64,6 +64,7 @@ function validate(data: MemberFormData): FormErrors {
 
 export default function JoinForm() {
   const searchParams = useSearchParams();
+  const [plans, setPlans] = useState<PlanOption[]>([]);
   const [form, setForm] = useState<MemberFormData>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Partial<Record<keyof MemberFormData, boolean>>>({});
@@ -71,13 +72,31 @@ export default function JoinForm() {
   const [success, setSuccess] = useState(false);
   const [apiError, setApiError] = useState("");
 
-  // Pre-fill plan from query string
+  // Fetch plans from API
   useEffect(() => {
-    const plan = searchParams.get("plan");
-    if (plan && plans.find((p) => p.id === plan)) {
-      setForm((f) => ({ ...f, selected_plan: plan }));
+    apiClient
+      .get<{ success: boolean; data: { id: string; name: string; price: number; duration: string }[] }>("/api/plans")
+      .then((res) => {
+        setPlans(
+          res.data.data.map((p) => ({
+            id: p.id,
+            label: `${p.name} – ₹${p.price.toLocaleString("en-IN")}`,
+          }))
+        );
+      })
+      .catch(() => {});
+  }, []);
+
+  // Pre-fill plan from query string once plans are loaded
+  useEffect(() => {
+    if (plans.length === 0) return;
+    const param = searchParams.get("plan");
+    if (!param) return;
+    const match = plans.find((p) => p.id === param);
+    if (match) {
+      setForm((f) => ({ ...f, selected_plan: match.id }));
     }
-  }, [searchParams]);
+  }, [searchParams, plans]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -358,7 +377,12 @@ export default function JoinForm() {
               Processing...
             </span>
           ) : (
-            "Submit Registration"
+            <span className="flex items-center justify-center gap-2">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+              </svg>
+              Proceed to Payment
+            </span>
           )}
         </button>
         <p className="text-[#555] text-xs text-center mt-4">

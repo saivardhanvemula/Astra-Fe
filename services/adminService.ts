@@ -6,7 +6,15 @@
 
 import { apiClient } from "./apiClient";
 import { getToken } from "@/utils/auth";
-import type { AdminPlan, Member, MemberDashboardInfo } from "@/types";
+import type {
+  AdminPlan,
+  Member,
+  MemberDashboardInfo,
+  DashboardSummary,
+  ExpiringMember,
+  RecentMember,
+  WeeklyCheckin,
+} from "@/types";
 
 function authHeaders() {
   const token = getToken();
@@ -68,5 +76,39 @@ export async function getMemberMembership(): Promise<MemberDashboardInfo> {
     success: boolean;
     data: MemberDashboardInfo;
   }>("/api/members/me", { headers: authHeaders() });
+  return res.data.data;
+}
+
+// ── Admin Dashboard ────────────────────────────────────────────────────────────
+
+export async function getDashboardSummary(): Promise<DashboardSummary> {
+  const res = await apiClient.get<{ success: boolean; data: DashboardSummary }>(
+    "/api/admin/dashboard/summary",
+    { headers: authHeaders() }
+  );
+  return res.data.data;
+}
+
+export async function getExpiringMembers(): Promise<ExpiringMember[]> {
+  const res = await apiClient.get<{ success: boolean; data: ExpiringMember[] }>(
+    "/api/admin/dashboard/expiring",
+    { headers: authHeaders() }
+  );
+  return res.data.data;
+}
+
+export async function getRecentMembers(): Promise<RecentMember[]> {
+  const res = await apiClient.get<{ success: boolean; data: RecentMember[] }>(
+    "/api/admin/dashboard/recent-members",
+    { headers: authHeaders() }
+  );
+  return res.data.data;
+}
+
+export async function getWeeklyCheckins(): Promise<WeeklyCheckin[]> {
+  const res = await apiClient.get<{ success: boolean; data: WeeklyCheckin[] }>(
+    "/api/admin/dashboard/weekly-checkins",
+    { headers: authHeaders() }
+  );
   return res.data.data;
 }

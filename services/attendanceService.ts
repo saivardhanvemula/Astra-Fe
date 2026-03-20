@@ -21,11 +21,11 @@ function authHeaders() {
 
 /** Fetch a fresh QR token for the check-in display screen. */
 export async function getCheckinQR(): Promise<QRTokenResponse> {
-  const res = await apiClient.get<{ success: boolean; data: QRTokenResponse }>(
+  const res = await apiClient.get<QRTokenResponse>(
     "/api/sessions/qr/checkin",
     { headers: authHeaders() }
   );
-  return res.data.data;
+  return res.data;
 }
 
 /** Fetch all attendance records (admin view). */

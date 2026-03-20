@@ -89,7 +89,7 @@ export default function MemberTable({ members }: Props) {
                   {formatDate(m.start_date)}
                 </td>
                 <td className="px-4 py-3 text-[#888] whitespace-nowrap">
-                  {formatDate(m.expiry_date)}
+                  {formatDate(m.end_date)}
                 </td>
                 <td className="px-4 py-3">
                   <span

@@ -6,6 +6,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import ProfileCard from "@/components/profile/ProfileCard";
 import EditProfileForm from "@/components/profile/EditProfileForm";
+import ChangePasswordForm from "@/components/ChangePasswordForm";
 import {
   getProfile,
   updateProfile,
@@ -44,6 +45,7 @@ export default function MemberProfilePage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [pwOpen, setPwOpen] = useState(false);
 
   useEffect(() => {
     getProfile()
@@ -214,6 +216,39 @@ export default function MemberProfilePage() {
               </div>
             </div>
           ) : null}
+
+          {/* Change Password */}
+          <div className="mt-6 bg-[#111111] border border-[#2A2A2A]">
+            <button
+              onClick={() => setPwOpen((v) => !v)}
+              className="w-full flex items-center justify-between px-6 py-4 hover:bg-[#161616] transition-colors duration-200 group"
+            >
+              <p className="text-[#555] group-hover:text-[#888] text-[10px] font-black tracking-[0.2em] uppercase transition-colors duration-200">
+                Change Password
+              </p>
+              <svg
+                className={`w-4 h-4 text-[#555] group-hover:text-[#888] transition-all duration-200 ${
+                  pwOpen ? "rotate-180" : ""
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {pwOpen && (
+              <div className="px-6 pb-6 pt-2 border-t border-[#1A1A1A]">
+                <ChangePasswordForm
+                  onSuccess={() => {
+                    showToast("Password updated successfully!");
+                    setPwOpen(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </ProtectedRoute>

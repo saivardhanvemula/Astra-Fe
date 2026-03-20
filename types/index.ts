@@ -43,6 +43,35 @@ export interface MemberFormData {
   selected_plan: string;
 }
 
+// ── Admin: Dashboard ──────────────────────────────────────────────────────────
+
+export interface DashboardSummary {
+  total_members: number;
+  active_members: number;
+  expired_members: number;
+  today_checkins: number;
+  currently_in_gym: number;
+}
+
+export interface ExpiringMember {
+  id: string;
+  name: string;
+  expiry_date: string;
+  days_remaining: number;
+}
+
+export interface RecentMember {
+  id: string;
+  name: string;
+  joined_date: string;
+  plan_name: string;
+}
+
+export interface WeeklyCheckin {
+  date: string;   // "Mon", "Tue" or "2026-03-18" — whatever the API returns
+  count: number;
+}
+
 // ── Admin: Membership Plans ────────────────────────────────────────────────────
 
 export interface AdminPlan {
@@ -64,7 +93,7 @@ export interface Member {
   plan_id: string;
   plan_name: string;
   start_date: string;
-  expiry_date: string;
+  end_date: string;
   status: MemberStatus;
 }
 

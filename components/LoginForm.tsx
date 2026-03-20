@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { loginRequest } from "@/utils/api";
 
 export default function LoginForm() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("member@astragym.com");
-  const [password, setPassword] = useState("member@123");
+  const [email, setEmail] = useState("admin@astragym.com");
+  const [password, setPassword] = useState("admin@123");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,9 +52,17 @@ export default function LoginForm() {
       </div>
 
       <div>
-        <label className="block text-[#888] text-[10px] font-black tracking-[0.2em] uppercase mb-2">
-          Password
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-[#888] text-[10px] font-black tracking-[0.2em] uppercase">
+            Password
+          </label>
+          <Link
+            href="/forgot-password"
+            className="text-[#555] hover:text-[#E50914] text-[10px] font-black tracking-[0.15em] uppercase transition-colors duration-200"
+          >
+            Forgot Password?
+          </Link>
+        </div>
         <input
           type="password"
           required

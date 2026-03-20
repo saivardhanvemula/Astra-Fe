@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { label: "Members", href: "/admin/members" },
   { label: "Plans", href: "/admin/plans" },
   { label: "Attendance", href: "/admin/attendance" },
+  { label: "Workouts", href: "/admin/workouts" },
 ];
 
 interface Props {

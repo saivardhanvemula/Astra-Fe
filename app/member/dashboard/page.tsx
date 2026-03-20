@@ -283,7 +283,7 @@ export default function MemberDashboard() {
 
           {/* Days remaining progress bar */}
           {info && info.status !== "expired" && (
-            <div className="bg-[#111111] border border-[#2A2A2A] p-6">
+            <div className="bg-[#111111] border border-[#2A2A2A] p-6 mb-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[#555] text-[10px] font-black tracking-[0.2em] uppercase">
                   Days Remaining
@@ -312,6 +312,24 @@ export default function MemberDashboard() {
               </div>
             </div>
           )}
+
+          {/* My Workout */}
+          <Link
+            href="/member/workout"
+            className="group flex items-center justify-between bg-[#111111] border border-[#2A2A2A] hover:border-[#E50914] px-6 py-5 transition-colors duration-200"
+          >
+            <div>
+              <p className="text-[#555] text-[10px] font-black tracking-[0.2em] uppercase mb-1">
+                Training
+              </p>
+              <p className="text-white font-black text-lg group-hover:text-[#E50914] transition-colors duration-200">
+                My Workout Plan
+              </p>
+            </div>
+            <span className="text-[#333] group-hover:text-[#E50914] text-xl transition-colors duration-200">
+              →
+            </span>
+          </Link>
         </main>
       </div>
     </ProtectedRoute>

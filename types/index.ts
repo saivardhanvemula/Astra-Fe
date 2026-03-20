@@ -149,3 +149,51 @@ export interface UserProfile {
   profile_picture: string | null;
   created_at?: string;
 }
+
+// ── Workouts ───────────────────────────────────────────────────────────────────
+
+/** Shape used when creating a plan (sent to POST /workouts/plans) */
+export interface WorkoutExercise {
+  exercise_id: string;
+  sets: number;
+  reps: string; // API uses string e.g. "10"
+  /** Populated by the API when fetching plans */
+  exercise?: {
+    id: string;
+    name: string;
+    muscle_group: string;
+  };
+}
+
+export interface WorkoutDay {
+  id?: string;
+  day_number: number;
+  title: string;
+  exercises: WorkoutExercise[];
+}
+
+export interface WorkoutPlan {
+  id: string;
+  name: string;
+  days: WorkoutDay[];
+  created_at?: string;
+}
+
+/** Shape returned by GET /workouts/member/:id */
+export interface WorkoutExerciseDisplay {
+  name: string;
+  muscle_group: string;
+  sets: number;
+  reps: string;
+}
+
+export interface MemberWorkout {
+  day: number;
+  title: string;
+  exercises: WorkoutExerciseDisplay[];
+}
+
+export interface AssignWorkoutPayload {
+  member_id: string;
+  plan_id: string;
+}

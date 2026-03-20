@@ -16,6 +16,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: "admin" | "member";
+  member_id?: string;
 }
 
 interface AuthContextType {

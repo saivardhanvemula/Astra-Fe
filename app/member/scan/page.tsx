@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { checkin, checkout, getTodaySession } from "@/services/attendanceService";
+import { getStreak } from "@/services/progressService";
 import type { AttendanceSession } from "@/types";
 
 // Scanner uses the camera API — must be client-only, no SSR
@@ -32,11 +33,18 @@ export default function MemberScanPage() {
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
+  const [streakAfterCheckin, setStreakAfterCheckin] = useState<number | null>(null);
+  const [prevStreak, setPrevStreak] = useState<number>(0);
 
   // On mount: if the member already has an active session, surface it immediately
   useEffect(() => {
-    getTodaySession()
-      .then((s) => {
+    // Fetch both current session and pre-checkin streak in parallel
+    Promise.allSettled([
+      getTodaySession(),
+      getStreak(),
+    ]).then(([sessionResult, streakResult]) => {
+      if (sessionResult.status === "fulfilled") {
+        const s = sessionResult.value;
         if (s.check_in_time && !s.check_out_time) {
           setSession({
             id: "",
@@ -47,9 +55,11 @@ export default function MemberScanPage() {
           });
           setScanState("success");
         }
-      })
-      .catch(() => {/* no session or network error — show scanner */})
-      .finally(() => setSessionLoading(false));
+      }
+      if (streakResult.status === "fulfilled") {
+        setPrevStreak(streakResult.value.current_streak);
+      }
+    }).finally(() => setSessionLoading(false));
   }, []);
 
   const handleScan = useCallback(
@@ -61,6 +71,10 @@ export default function MemberScanPage() {
         const result = await checkin(rawToken);
         setSession(result);
         setScanState("success");
+        // Fetch updated streak and detect +1
+        getStreak()
+          .then((data) => setStreakAfterCheckin(data.current_streak))
+          .catch(() => {/* non-critical */});
       } catch (err) {
         const msg =
           err instanceof Error ? err.message : "Check-in failed. Try again.";
@@ -90,6 +104,7 @@ export default function MemberScanPage() {
     setScanState("idle");
     setSession(null);
     setErrorMsg("");
+    setStreakAfterCheckin(null);
   }
 
   return (
@@ -163,6 +178,35 @@ export default function MemberScanPage() {
                   {fmtTime(session.check_in_time)}
                 </p>
               </div>
+
+              {/* Streak badge — shown after a fresh check-in */}
+              {streakAfterCheckin !== null && (
+                <div
+                  className={`w-full p-4 text-center border ${
+                    streakAfterCheckin > prevStreak
+                      ? "bg-[#1c1400] border-[#f59e0b]/40"
+                      : "bg-[#111111] border-[#2A2A2A]"
+                  }`}
+                >
+                  <p className="text-2xl mb-1">🔥</p>
+                  {streakAfterCheckin > prevStreak ? (
+                    <p className="text-[#f59e0b] text-sm font-black tracking-wide">
+                      +1 Day Streak!
+                    </p>
+                  ) : null}
+                  <p className="text-white text-[10px] font-black tracking-[0.2em] uppercase mt-1">
+                    Streak:{" "}
+                    <span className={streakAfterCheckin >= 5 ? "text-[#f59e0b]" : "text-white"}>
+                      {streakAfterCheckin} {streakAfterCheckin === 1 ? "day" : "days"}
+                    </span>
+                  </p>
+                  {streakAfterCheckin >= 5 && (
+                    <p className="text-[#f59e0b] text-[10px] font-semibold mt-1">
+                      You&apos;re on fire 🔥
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Session info */}
               <div className="w-full grid grid-cols-2 gap-3">

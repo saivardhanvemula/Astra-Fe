@@ -7,6 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMembership } from "@/store/membershipSlice";
 import { getTodaySession, checkout } from "@/services/attendanceService";
+import { getStreak } from "@/services/progressService";
+import StreakCard from "@/components/StreakCard";
 import type { MemberStatus, TodaySession } from "@/types";
 
 const STATUS_STYLE: Record<MemberStatus, { text: string; label: string }> = {
@@ -57,6 +59,8 @@ export default function MemberDashboard() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [streak, setStreak] = useState<number>(0);
+  const [streakLoading, setStreakLoading] = useState(true);
 
   async function handleCheckout() {
     setCheckoutLoading(true);
@@ -93,6 +97,13 @@ export default function MemberDashboard() {
       .then(setTodaySession)
       .catch(() => setTodaySession(null))
       .finally(() => setSessionLoading(false));
+  }, []);
+
+  useEffect(() => {
+    getStreak()
+      .then((data) => setStreak(data.current_streak))
+      .catch(() => setStreak(0))
+      .finally(() => setStreakLoading(false));
   }, []);
 
   const statusCfg = info ? STATUS_STYLE[info.status] : null;
@@ -145,6 +156,11 @@ export default function MemberDashboard() {
           <p className="text-[#555] text-sm tracking-wide mb-12">
             {user?.email}
           </p>
+
+          {/* Streak */}
+          <div className="mb-6">
+            <StreakCard current_streak={streak} loading={streakLoading} />
+          </div>
 
           {/* Membership cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -324,6 +340,24 @@ export default function MemberDashboard() {
               </p>
               <p className="text-white font-black text-lg group-hover:text-[#E50914] transition-colors duration-200">
                 My Workout Plan
+              </p>
+            </div>
+            <span className="text-[#333] group-hover:text-[#E50914] text-xl transition-colors duration-200">
+              →
+            </span>
+          </Link>
+
+          {/* Progress */}
+          <Link
+            href="/member/progress"
+            className="group flex items-center justify-between bg-[#111111] border border-[#2A2A2A] hover:border-[#E50914] px-6 py-5 transition-colors duration-200 mt-4"
+          >
+            <div>
+              <p className="text-[#555] text-[10px] font-black tracking-[0.2em] uppercase mb-1">
+                Tracking
+              </p>
+              <p className="text-white font-black text-lg group-hover:text-[#E50914] transition-colors duration-200">
+                Weight Progress
               </p>
             </div>
             <span className="text-[#333] group-hover:text-[#E50914] text-xl transition-colors duration-200">

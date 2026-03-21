@@ -176,6 +176,23 @@ export default function MemberWorkoutPage() {
               >
                 {completing ? "Saving…" : "Mark as Complete"}
               </button>
+
+              {/* Log workout / history links — hidden until feature is ready
+              <div className="flex flex-wrap gap-3 mt-4">
+                <Link
+                  href="/member/workout/log"
+                  className="bg-[#111111] border border-[#2A2A2A] hover:border-[#E50914] text-[#888] hover:text-[#E50914] text-[9px] font-black tracking-[0.2em] uppercase px-5 py-3 transition-colors duration-200"
+                >
+                  Log Workout →
+                </Link>
+                <Link
+                  href="/member/workout/history"
+                  className="bg-[#111111] border border-[#2A2A2A] hover:border-[#E50914] text-[#888] hover:text-[#E50914] text-[9px] font-black tracking-[0.2em] uppercase px-5 py-3 transition-colors duration-200"
+                >
+                  View History →
+                </Link>
+              </div>
+              */}
             </>
           )}
         </div>

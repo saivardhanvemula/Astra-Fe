@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { submitMemberForm } from "@/services/memberService";
 import { apiClient } from "@/services/apiClient";
@@ -21,15 +21,16 @@ const fitnessGoals = [
 interface PlanOption {
   id: string;
   label: string;
+  name: string;
 }
 
 const initialForm: MemberFormData = {
-  name: "",
-  phone: "",
-  email: "",
-  age: "",
-  gender: "",
-  fitness_goal: "",
+  name: "sai vardhan",
+  phone: "8977715124",
+  email: "sivardhanvemulamncl@gmail.com",
+  age: "21",
+  gender: "Male",
+  fitness_goal: "Strength Training",
   selected_plan: "",
 };
 
@@ -63,13 +64,13 @@ function validate(data: MemberFormData): FormErrors {
 }
 
 export default function JoinForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [plans, setPlans] = useState<PlanOption[]>([]);
   const [form, setForm] = useState<MemberFormData>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Partial<Record<keyof MemberFormData, boolean>>>({});
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [apiError, setApiError] = useState("");
 
   // Fetch plans from API
@@ -77,26 +78,27 @@ export default function JoinForm() {
     apiClient
       .get<{ success: boolean; data: { id: string; name: string; price: number; duration: string }[] }>("/api/plans")
       .then((res) => {
-        setPlans(
-          res.data.data.map((p) => ({
-            id: p.id,
-            label: `${p.name} – ₹${p.price.toLocaleString("en-IN")}`,
-          }))
-        );
+        const mapped = res.data.data.map((p) => ({
+          id: p.id,
+          label: `${p.name} – ₹${p.price.toLocaleString("en-IN")}`,
+          name: p.name,
+        }));
+        setPlans(mapped);
+
+        // Default to monthly plan unless query param overrides it
+        const param = searchParams.get("plan");
+        if (param) {
+          const match = mapped.find((p) => p.id === param);
+          if (match) setForm((f) => ({ ...f, selected_plan: match.id }));
+        } else {
+          const monthly = mapped.find((p) =>
+            p.name.toLowerCase().includes("month")
+          );
+          if (monthly) setForm((f) => ({ ...f, selected_plan: monthly.id }));
+        }
       })
       .catch(() => {});
-  }, []);
-
-  // Pre-fill plan from query string once plans are loaded
-  useEffect(() => {
-    if (plans.length === 0) return;
-    const param = searchParams.get("plan");
-    if (!param) return;
-    const match = plans.find((p) => p.id === param);
-    if (match) {
-      setForm((f) => ({ ...f, selected_plan: match.id }));
-    }
-  }, [searchParams, plans]);
+  }, [searchParams]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -131,7 +133,8 @@ export default function JoinForm() {
     setApiError("");
     try {
       await submitMemberForm(form);
-      setSuccess(true);
+      const planParam = form.selected_plan ? `?plan=${form.selected_plan}` : "";
+      router.push(`/member/plans${planParam}`);
     } catch (err: unknown) {
       setApiError(
         err instanceof Error ? err.message : "Submission failed. Please try again."
@@ -140,38 +143,6 @@ export default function JoinForm() {
       setLoading(false);
     }
   };
-
-  if (success) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="text-center py-20 px-8"
-      >
-        <div className="w-20 h-20 rounded-full bg-[#E50914]/15 flex items-center justify-center mx-auto mb-6">
-          <span className="text-4xl">✓</span>
-        </div>
-        <h2 className="text-3xl font-black uppercase tracking-tight text-white mb-4">
-          Welcome to Astra!
-        </h2>
-        <p className="text-[#888] text-lg mb-8 max-w-md mx-auto leading-relaxed">
-          Your registration was successful. Our team will contact you within 24
-          hours to confirm your membership.
-        </p>
-        <button
-          onClick={() => {
-            setForm(initialForm);
-            setTouched({});
-            setErrors({});
-            setSuccess(false);
-          }}
-          className="bg-[#E50914] hover:bg-[#C20812] text-white px-10 py-3 font-black tracking-widest uppercase text-sm transition-all duration-200 hover:scale-105"
-        >
-          Register Another
-        </button>
-      </motion.div>
-    );
-  }
 
   const inputClass = (field: keyof MemberFormData) =>
     `w-full bg-[#111] border px-4 py-3.5 text-white text-sm placeholder-[#444] outline-none transition-colors duration-200 focus:border-[#E50914] ${

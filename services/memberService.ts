@@ -11,7 +11,7 @@ import type { MemberFormData } from "@/types";
 export async function submitMemberForm(data: MemberFormData) {
   try {
     const response = await apiClient.post<{ success: boolean; message: string }>(
-      "/api/members",
+      "/api/members/join",
       data
     );
     return response.data;

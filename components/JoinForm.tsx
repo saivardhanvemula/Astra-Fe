@@ -25,12 +25,12 @@ interface PlanOption {
 }
 
 const initialForm: MemberFormData = {
-  name: "sai vardhan",
-  phone: "8977715124",
-  email: "sivardhanvemulamncl@gmail.com",
-  age: "21",
-  gender: "Male",
-  fitness_goal: "Strength Training",
+  name: "",
+  phone: "",
+  email: "",
+  age: "",
+  gender: "",
+  fitness_goal: "",
   selected_plan: "",
 };
 

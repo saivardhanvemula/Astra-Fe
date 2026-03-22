@@ -7,15 +7,31 @@ import { useAuth } from "@/context/AuthContext";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMembership } from "@/store/membershipSlice";
 import { getTodaySession, checkout } from "@/services/attendanceService";
-import { getStreak } from "@/services/progressService";
+import {
+  getStreak,
+  getProgressSummary,
+  getWeightHistory,
+} from "@/services/progressService";
+import { getMyWorkout } from "@/services/workoutService";
+import TodayWorkout from "@/components/TodayWorkout";
+import ProgressCards from "@/components/ProgressCards";
+import WeightChart from "@/components/WeightChart";
+import QuickActions from "@/components/QuickActions";
 import StreakCard from "@/components/StreakCard";
-import type { MemberStatus, TodaySession } from "@/types";
+import type { MemberStatus, TodaySession, MemberWorkout } from "@/types";
+import type { ProgressSummary, WeightEntry } from "@/services/progressService";
 
 const STATUS_STYLE: Record<MemberStatus, { text: string; label: string }> = {
   active: { text: "text-[#22c55e]", label: "Active" },
   expired: { text: "text-[#E50914]", label: "Expired" },
   expiring_soon: { text: "text-[#f59e0b]", label: "Expiring Soon" },
 };
+
+function smartMessage(streak: number): string {
+  if (streak === 0) return "Start your journey 💪";
+  if (streak < 5) return "Keep going 🔥";
+  return "You're on fire 🔥";
+}
 
 function fmtTime(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -54,13 +70,30 @@ function fmt(dateStr: string | undefined | null): string {
 export default function MemberDashboard() {
   const { user, logout } = useAuth();
   const dispatch = useAppDispatch();
-  const { data: info, loading } = useAppSelector((s) => s.membership);
+  const { data: info, loading: membershipLoading } = useAppSelector((s) => s.membership);
+
+  // Session
   const [todaySession, setTodaySession] = useState<TodaySession | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  // Streak
   const [streak, setStreak] = useState<number>(0);
   const [streakLoading, setStreakLoading] = useState(true);
+
+  // Today's workout
+  const [workout, setWorkout] = useState<MemberWorkout | null>(null);
+  const [workoutLoading, setWorkoutLoading] = useState(true);
+  const [workoutError, setWorkoutError] = useState(false);
+
+  // Progress summary
+  const [summary, setSummary] = useState<ProgressSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+
+  // Weight history
+  const [weightEntries, setWeightEntries] = useState<WeightEntry[]>([]);
+  const [weightLoading, setWeightLoading] = useState(true);
 
   async function handleCheckout() {
     setCheckoutLoading(true);
@@ -86,10 +119,7 @@ export default function MemberDashboard() {
   }
 
   useEffect(() => {
-    // Only fetch if we don't already have the data in the store
-    if (!info) {
-      dispatch(fetchMembership());
-    }
+    if (!info) dispatch(fetchMembership());
   }, [dispatch, info]);
 
   useEffect(() => {
@@ -106,12 +136,39 @@ export default function MemberDashboard() {
       .finally(() => setStreakLoading(false));
   }, []);
 
+  useEffect(() => {
+    const uid = user?.member_id ?? user?.id;
+    if (!uid) return;
+    getMyWorkout(uid)
+      .then(setWorkout)
+      .catch(() => setWorkoutError(true))
+      .finally(() => setWorkoutLoading(false));
+  }, [user?.member_id, user?.id]);
+
+  useEffect(() => {
+    getProgressSummary()
+      .then(setSummary)
+      .catch(() => setSummary(null))
+      .finally(() => setSummaryLoading(false));
+  }, []);
+
+  useEffect(() => {
+    getWeightHistory()
+      .then(setWeightEntries)
+      .catch(() => setWeightEntries([]))
+      .finally(() => setWeightLoading(false));
+  }, []);
+
   const statusCfg = info ? STATUS_STYLE[info.status] : null;
+  const checkedIn = Boolean(
+    todaySession?.check_in_time && !todaySession?.check_out_time
+  );
 
   return (
     <ProtectedRoute allowedRole="member">
       <div className="min-h-screen bg-[#0B0B0B] text-white">
-        {/* Top bar */}
+
+        {/* ── Top bar ── */}
         <header className="border-b border-[#2A2A2A] bg-[#111111] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-[#E50914] text-[10px] font-black tracking-[0.3em] uppercase">
@@ -119,16 +176,10 @@ export default function MemberDashboard() {
             </span>
             <span className="text-[#333]">/</span>
             <span className="text-[#666] text-[10px] font-black tracking-[0.2em] uppercase">
-              Member
+              Dashboard
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/member/scan"
-              className="bg-[#E50914] hover:bg-[#C20812] text-white text-[10px] font-black tracking-[0.2em] uppercase px-4 py-2 transition-colors duration-200"
-            >
-              Check In
-            </Link>
+          <div className="flex items-center gap-2">
             <Link
               href="/member/profile"
               className="border border-[#2A2A2A] hover:border-[#E50914] text-[#888] hover:text-[#E50914] text-[10px] font-black tracking-[0.2em] uppercase px-4 py-2 transition-colors duration-200"
@@ -144,95 +195,120 @@ export default function MemberDashboard() {
           </div>
         </header>
 
-        {/* Main content */}
-        <main className="max-w-4xl mx-auto px-6 py-16">
-          <p className="text-[#E50914] text-[10px] font-black tracking-[0.3em] uppercase mb-4">
-            Member Dashboard
-          </p>
-          <h1 className="text-4xl sm:text-5xl font-black uppercase tracking-tight text-white mb-3">
-            Welcome,{" "}
-            <span className="text-[#E50914]">{user?.name ?? "Member"}</span>
-          </h1>
-          <p className="text-[#555] text-sm tracking-wide mb-12">
-            {user?.email}
-          </p>
+        {/* ── Main ── */}
+        <main className="max-w-4xl mx-auto px-6 py-12 space-y-6">
 
-          {/* Streak */}
-          <div className="mb-6">
+          {/* ── Hero greeting ── */}
+          <div>
+            <p className="text-[#E50914] text-[10px] font-black tracking-[0.3em] uppercase mb-2">
+              Member Dashboard
+            </p>
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1">
+              <h1 className="text-4xl sm:text-5xl font-black uppercase tracking-tight text-white">
+                Hey,{" "}
+                <span className="text-[#E50914]">
+                  {user?.name?.split(" ")[0] ?? "Champ"}
+                </span>
+              </h1>
+              <p
+                className={`text-sm font-semibold pb-1 transition-all duration-500 ${
+                  streak >= 5
+                    ? "text-[#f59e0b]"
+                    : streak > 0
+                    ? "text-[#E50914]"
+                    : "text-[#555]"
+                }`}
+              >
+                {streakLoading ? "\u00a0" : smartMessage(streak)}
+              </p>
+            </div>
+          </div>
+
+          {/* ── Row 1: Streak | Today's Workout ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <StreakCard current_streak={streak} loading={streakLoading} />
+            <TodayWorkout
+              workout={workout}
+              loading={workoutLoading}
+              error={workoutError}
+            />
           </div>
 
-          {/* Membership cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {/* Plan */}
-            <div className="bg-[#111111] border border-[#2A2A2A] p-6">
-              <p className="text-[#555] text-[10px] font-black tracking-[0.2em] uppercase mb-3">
-                Plan
-              </p>
-              <p className="text-xl font-black text-white truncate">
-                {loading ? (
-                  <span className="text-[#333] animate-pulse">—</span>
-                ) : (
-                  info?.plan_name ?? "—"
-                )}
-              </p>
-            </div>
+          {/* ── Row 2: Progress cards ── */}
+          <ProgressCards summary={summary} loading={summaryLoading} />
 
-            {/* Start Date */}
-            <div className="bg-[#111111] border border-[#2A2A2A] p-6">
-              <p className="text-[#555] text-[10px] font-black tracking-[0.2em] uppercase mb-3">
-                Start Date
-              </p>
-              <p className="text-lg font-black text-white">
-                {loading ? (
-                  <span className="text-[#333] animate-pulse">—</span>
-                ) : (
-                  fmt(info?.start_date)
-                )}
-              </p>
-            </div>
+          {/* ── Row 3: Weight chart ── */}
+          <WeightChart entries={weightEntries} loading={weightLoading} />
 
-            {/* End Date */}
-            <div className="bg-[#111111] border border-[#2A2A2A] p-6">
-              <p className="text-[#555] text-[10px] font-black tracking-[0.2em] uppercase mb-3">
-                Expires
-              </p>
-              <p className="text-lg font-black text-white">
-                {loading ? (
-                  <span className="text-[#333] animate-pulse">—</span>
-                ) : (
-                  fmt(info?.end_date)
-                )}
-              </p>
-            </div>
+          {/* ── Row 4: Quick actions ── */}
+          <QuickActions />
 
-            {/* Status */}
-            <div className="bg-[#111111] border border-[#2A2A2A] p-6">
-              <p className="text-[#555] text-[10px] font-black tracking-[0.2em] uppercase mb-3">
-                Status
-              </p>
-              {loading ? (
-                <span className="text-[#333] font-black animate-pulse">—</span>
-              ) : statusCfg ? (
-                <p
-                  className={`text-sm font-black uppercase tracking-wider ${statusCfg.text}`}
-                >
-                  {statusCfg.label}
+          {/* ── Row 5: Membership info ── */}
+          <div className="bg-[#111111] border border-[#2A2A2A] p-6">
+            <p className="text-[10px] font-black tracking-[0.2em] uppercase text-[#555] mb-4">
+              Membership
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+              <div>
+                <p className="text-[#555] text-[9px] font-black tracking-[0.2em] uppercase mb-2">Plan</p>
+                <p className="text-white font-black truncate">
+                  {membershipLoading ? <span className="text-[#333] animate-pulse">—</span> : info?.plan_name ?? "—"}
                 </p>
-              ) : (
-                <p className="text-[#555] font-black">—</p>
-              )}
+              </div>
+              <div>
+                <p className="text-[#555] text-[9px] font-black tracking-[0.2em] uppercase mb-2">Start Date</p>
+                <p className="text-white font-black text-sm">
+                  {membershipLoading ? <span className="text-[#333] animate-pulse">—</span> : fmt(info?.start_date)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[#555] text-[9px] font-black tracking-[0.2em] uppercase mb-2">Expires</p>
+                <p className="text-white font-black text-sm">
+                  {membershipLoading ? <span className="text-[#333] animate-pulse">—</span> : fmt(info?.end_date)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[#555] text-[9px] font-black tracking-[0.2em] uppercase mb-2">Status</p>
+                {membershipLoading ? (
+                  <span className="text-[#333] font-black animate-pulse">—</span>
+                ) : statusCfg ? (
+                  <p className={`font-black text-sm uppercase tracking-wider ${statusCfg.text}`}>
+                    {statusCfg.label}
+                  </p>
+                ) : (
+                  <p className="text-[#555] font-black">—</p>
+                )}
+              </div>
             </div>
+
+            {info && info.status !== "expired" && (
+              <div className="mt-5">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[#555] text-[9px] font-black tracking-[0.2em] uppercase">
+                    Days Remaining
+                  </p>
+                  <p className={`font-black text-sm ${info.status === "expiring_soon" ? "text-[#f59e0b]" : "text-[#E50914]"}`}>
+                    {info.days_remaining} days
+                  </p>
+                </div>
+                <div className="h-1 bg-[#1A1A1A]">
+                  <div
+                    className={`h-full transition-all duration-700 ${info.status === "expiring_soon" ? "bg-[#f59e0b]" : "bg-[#E50914]"}`}
+                    style={{ width: `${Math.min(100, (info.days_remaining / 30) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Today's Session */}
-          <div className="bg-[#111111] border border-[#2A2A2A] p-6 mb-4">
+          {/* ── Row 6: Today's session ── */}
+          <div className="bg-[#111111] border border-[#2A2A2A] p-6">
             <div className="flex items-center justify-between mb-5">
-              <p className="text-[#555] text-[10px] font-black tracking-[0.2em] uppercase">
+              <p className="text-[10px] font-black tracking-[0.2em] uppercase text-[#555]">
                 Today&apos;s Session
               </p>
               {!sessionLoading && (
-                todaySession?.check_in_time && !todaySession?.check_out_time ? (
+                checkedIn ? (
                   <button
                     onClick={handleCheckout}
                     disabled={checkoutLoading}
@@ -257,14 +333,16 @@ export default function MemberDashboard() {
                 ) : null
               )}
             </div>
+
             {checkoutError && (
               <p className="text-[#E50914] text-[9px] font-black tracking-[0.15em] uppercase mb-4">
                 {checkoutError}
               </p>
             )}
+
             <div className="grid grid-cols-3 gap-4">
               {["Check-In", "Check-Out", "Duration"].map((label, i) => {
-                const values = sessionLoading
+                const values: string[] = sessionLoading
                   ? ["—", "—", "—"]
                   : [
                       fmtTime(todaySession?.check_in_time),
@@ -297,73 +375,6 @@ export default function MemberDashboard() {
             </div>
           </div>
 
-          {/* Days remaining progress bar */}
-          {info && info.status !== "expired" && (
-            <div className="bg-[#111111] border border-[#2A2A2A] p-6 mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[#555] text-[10px] font-black tracking-[0.2em] uppercase">
-                  Days Remaining
-                </p>
-                <p
-                  className={`font-black text-sm ${
-                    info.status === "expiring_soon"
-                      ? "text-[#f59e0b]"
-                      : "text-[#E50914]"
-                  }`}
-                >
-                  {info.days_remaining} days
-                </p>
-              </div>
-              <div className="h-1 bg-[#1A1A1A]">
-                <div
-                  className={`h-full transition-all duration-700 ${
-                    info.status === "expiring_soon"
-                      ? "bg-[#f59e0b]"
-                      : "bg-[#E50914]"
-                  }`}
-                  style={{
-                    width: `${Math.min(100, (info.days_remaining / 30) * 100)}%`,
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* My Workout */}
-          <Link
-            href="/member/workout"
-            className="group flex items-center justify-between bg-[#111111] border border-[#2A2A2A] hover:border-[#E50914] px-6 py-5 transition-colors duration-200"
-          >
-            <div>
-              <p className="text-[#555] text-[10px] font-black tracking-[0.2em] uppercase mb-1">
-                Training
-              </p>
-              <p className="text-white font-black text-lg group-hover:text-[#E50914] transition-colors duration-200">
-                My Workout Plan
-              </p>
-            </div>
-            <span className="text-[#333] group-hover:text-[#E50914] text-xl transition-colors duration-200">
-              →
-            </span>
-          </Link>
-
-          {/* Progress */}
-          <Link
-            href="/member/progress"
-            className="group flex items-center justify-between bg-[#111111] border border-[#2A2A2A] hover:border-[#E50914] px-6 py-5 transition-colors duration-200 mt-4"
-          >
-            <div>
-              <p className="text-[#555] text-[10px] font-black tracking-[0.2em] uppercase mb-1">
-                Tracking
-              </p>
-              <p className="text-white font-black text-lg group-hover:text-[#E50914] transition-colors duration-200">
-                Weight Progress
-              </p>
-            </div>
-            <span className="text-[#333] group-hover:text-[#E50914] text-xl transition-colors duration-200">
-              →
-            </span>
-          </Link>
         </main>
       </div>
     </ProtectedRoute>

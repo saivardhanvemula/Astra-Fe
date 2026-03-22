@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { apiClient } from "@/services/apiClient";
@@ -19,8 +19,10 @@ interface ApiPlan {
 
 const POPULAR = "Quarterly";
 
-export default function MemberPlansPage() {
+function MemberPlansContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const autoTriggered = useRef(false);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
@@ -43,6 +45,17 @@ export default function MemberPlansPage() {
       .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, []);
+
+  // Auto-trigger payment when redirected from join form with ?plan=<id>
+  useEffect(() => {
+    const planParam = searchParams.get("plan");
+    if (!planParam || loading || fetchError || autoTriggered.current) return;
+    const match = plans.find((p) => p.id === planParam);
+    if (!match) return;
+    autoTriggered.current = true;
+    handleBuy(planParam);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plans, loading, fetchError]);
 
   async function handleBuy(planId: string) {
     setProcessingId(planId);
@@ -256,5 +269,13 @@ export default function MemberPlansPage() {
         </main>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function MemberPlansPage() {
+  return (
+    <Suspense>
+      <MemberPlansContent />
+    </Suspense>
   );
 }

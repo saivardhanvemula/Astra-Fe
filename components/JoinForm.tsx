@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { submitMemberForm } from "@/services/memberService";
+import { initiateJoinAndPay, verifyPayment, loadRazorpayScript } from "@/services/paymentService";
 import { apiClient } from "@/services/apiClient";
 import type { MemberFormData } from "@/types";
 
@@ -132,9 +132,57 @@ export default function JoinForm() {
     setLoading(true);
     setApiError("");
     try {
-      await submitMemberForm(form);
-      const planParam = form.selected_plan ? `?plan=${form.selected_plan}` : "";
-      router.push(`/member/plans${planParam}`);
+      const loaded = await loadRazorpayScript();
+      if (!loaded) {
+        setApiError("Failed to load payment gateway. Check your connection.");
+        return;
+      }
+
+      const orderData = await initiateJoinAndPay({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        plan_id: form.selected_plan,
+        gender: form.gender,
+      });
+
+      const rzp = new window.Razorpay({
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: orderData.currency ?? "INR",
+        order_id: orderData.order_id,
+        name: "Astra – The Real Gym",
+        description: plans.find((p) => p.id === form.selected_plan)?.name ?? "Membership",
+        image: "/icon-192.png",
+        prefill: {
+          name: form.name,
+          email: form.email,
+          contact: form.phone,
+        },
+        theme: { color: "#E50914" },
+        handler: async function (response: {
+          razorpay_payment_id: string;
+          razorpay_order_id: string;
+          razorpay_signature: string;
+        }) {
+          try {
+            await verifyPayment(response);
+            router.push(
+              `/member/payment-success?razorpay_payment_id=${encodeURIComponent(response.razorpay_payment_id)}`
+            );
+          } catch {
+            setApiError("Payment verification failed. Please contact support.");
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setApiError("Payment cancelled.");
+            setLoading(false);
+          },
+        },
+      });
+
+      rzp.open();
     } catch (err: unknown) {
       setApiError(
         err instanceof Error ? err.message : "Submission failed. Please try again."
